@@ -3,123 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASR Express Basketball Train Tracker</title>
+    <title>Basketball Train Tracker</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="court">
-        <div class="scoreboard">
-            <div class="train-header">
-                <h1 id="trainName">ASR Express Basketball Train Tracker</h1>
-                <p>Train Number: 11057</p>
-            </div>
+    <div class="container">
+        <div class="court">
+            <h1>🏀 Basketball Train Tracker 🚂</h1>
             
-            <div class="stats-container">
-                <div class="stat-box">
-                    <h2>CURRENT STATION</h2>
-                    <p id="currentStation">Loading...</p>
-                    <small>Platform: <span id="platform">-</span></small>
-                </div>
+            <!-- Special Message Container -->
+            <div id="message-container"></div>
 
-                <div class="stat-box clickable" onclick="showStationsList()">
-                    <h2>STATIONS TO GO</h2>
-                    <p id="stationsRemaining">Loading...</p>
-                    <small>Next: <span id="nextStation">-</span></small>
-                </div>
+            <!-- Status Container -->
+            <div id="status-container"></div>
 
-                <div class="stat-box">
-                    <h2>STATUS</h2>
-                    <p id="trainStatus">Loading...</p>
-                    <small>Updated: <span id="lastUpdate">-</span></small>
-                </div>
-            </div>
+            <!-- Train Info -->
+            <div id="train-info"></div>
 
-            <div class="train-details">
-                <div class="route">
-                    <span id="source">CSMT</span> → <span id="destination">ASR</span>
-                </div>
-                <div class="info">
-                    <span>ETA: <span id="eta">-</span></span>
-                    <span>Delay: <span id="delay">-</span></span>
-                    <span>Speed: <span id="speed">-</span></span>
-                </div>
-                <div class="distance">
-                    <span>Distance: <span id="distanceCovered">-</span> / <span id="totalDistance">-</span></span>
-                </div>
-            </div>
-
-            <div class="basketball-animation">
-                <div class="ball"></div>
-            </div>
+            <!-- Upcoming Stations -->
+            <div id="upcoming-stations"></div>
         </div>
     </div>
 
-    <!-- Stations Modal -->
-    <div id="stationsModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Upcoming Stations</h2>
-                <span class="close">&times;</span>
-            </div>
-            <div class="stations-list">
-                <!-- Stations will be populated here -->
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function updateTrainInfo() {
-            fetch('/get_update')
-                .then(response => response.json())
-                .then(data => {
-                    // Update train info
-                    document.getElementById('trainName').textContent = data.train_info.train_name || 'ASR Express';
-                    document.getElementById('source').textContent = data.train_info.source;
-                    document.getElementById('destination').textContent = data.train_info.destination;
-                    
-                    // Update current station
-                    document.getElementById('currentStation').textContent = data.current_station;
-                    document.getElementById('platform').textContent = data.train_info.platform;
-                    
-                    // Update stations remaining
-                    document.getElementById('stationsRemaining').textContent = data.stations_remaining || 'N/A';
-                    if (data.train_info.next_stations && data.train_info.next_stations.length > 0) {
-                        document.getElementById('nextStation').textContent = data.train_info.next_stations[0];
-                    }
-                    
-                    // Update ETA and status
-                    document.getElementById('eta').textContent = data.train_info.eta;
-                    document.getElementById('trainStatus').textContent = data.status;
-                    
-                    // Update delay and last update
-                    document.getElementById('delay').textContent = data.train_info.delay;
-                    document.getElementById('lastUpdate').textContent = data.last_update;
-                    
-                    // Update speed and distance
-                    document.getElementById('speed').textContent = data.train_info.speed;
-                    document.getElementById('distanceCovered').textContent = data.train_info.distance_covered;
-                    document.getElementById('totalDistance').textContent = data.train_info.total_distance;
-                    
-                    // Add highlight effect to boxes with updates
-                    const boxes = document.querySelectorAll('.stat-box');
-                    boxes.forEach(box => {
-                        box.classList.add('highlight');
-                        setTimeout(() => box.classList.remove('highlight'), 2000);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-        }
-
-        function showStationsList() {
-            // TO DO: populate stations list in modal
-            document.getElementById('stationsModal').style.display = 'block';
-        }
-
-        // Update immediately and then every 20 seconds
-        updateTrainInfo();
-        setInterval(updateTrainInfo, 20000);
-    </script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

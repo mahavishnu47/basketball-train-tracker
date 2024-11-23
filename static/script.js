@@ -1,62 +1,94 @@
-// Polling interval in milliseconds (20 seconds)
-const POLLING_INTERVAL = 20000;
+// Polling interval in milliseconds (30 seconds)
+const POLLING_INTERVAL = 30000;
 
+// Function to update the train status
 function updateTrainStatus() {
     fetch('/get_update')
         .then(response => response.json())
         .then(data => {
-            // Update train status
-            document.getElementById('current-station').textContent = data.current_station || 'N/A';
-            document.getElementById('stations-remaining').textContent = data.stations_remaining || 0;
-            document.getElementById('last-update').textContent = data.last_update || 'N/A';
-            document.getElementById('status').textContent = data.status || 'Status unavailable';
+            const statusContainer = document.getElementById('status-container');
+            const messageContainer = document.getElementById('message-container');
+            const stationsList = document.getElementById('upcoming-stations');
+            const trainInfo = document.getElementById('train-info');
 
-            // Update train info
+            // Clear previous content
+            statusContainer.innerHTML = '';
+            messageContainer.innerHTML = '';
+            stationsList.innerHTML = '';
+            trainInfo.innerHTML = '';
+
+            if (data.error) {
+                statusContainer.innerHTML = `<div class="error">${data.error}</div>`;
+                return;
+            }
+
+            // Add special message with animation
+            if (data.train_info && data.train_info.message) {
+                messageContainer.innerHTML = `
+                    <div class="special-message">
+                        <span class="message-text">${data.train_info.message}</span>
+                    </div>
+                `;
+            }
+
+            // Current Status Section
+            const statusHTML = `
+                <div class="status-box ${data.is_active ? 'active' : 'inactive'}">
+                    <h2>Current Status</h2>
+                    <p class="current-station">🚉 Current Station: ${data.current_station}</p>
+                    <p class="status">📍 Status: ${data.status}</p>
+                    <p class="last-update">🕒 Last Updated: ${data.last_update}</p>
+                </div>
+            `;
+            statusContainer.innerHTML = statusHTML;
+
+            // Train Info Section
             if (data.train_info) {
-                document.getElementById('train-name').textContent = data.train_info.train_name || 'N/A';
-                document.getElementById('source').textContent = data.train_info.source || 'N/A';
-                document.getElementById('destination').textContent = data.train_info.destination || 'N/A';
-                document.getElementById('delay').textContent = data.train_info.delay || 'N/A';
-                document.getElementById('eta').textContent = data.train_info.eta || 'N/A';
-                document.getElementById('platform').textContent = data.train_info.platform || 'TBD';
-                document.getElementById('next-station').textContent = data.train_info.next_station || 'N/A';
-                document.getElementById('distance-covered').textContent = data.train_info.distance_covered || 'N/A';
-                document.getElementById('total-distance').textContent = data.train_info.total_distance || 'N/A';
-                document.getElementById('speed').textContent = data.train_info.speed || 'N/A';
-                document.getElementById('journey-time').textContent = data.train_info.journey_time || 'N/A';
+                const trainInfoHTML = `
+                    <div class="train-info-box">
+                        <h2>Train Information</h2>
+                        <p>🚂 Train: ${data.train_info.train_name}</p>
+                        <p>🏁 From: ${data.train_info.source}</p>
+                        <p>🎯 To: ${data.train_info.destination}</p>
+                        <p>⏱️ Delay: ${data.train_info.delay}</p>
+                        <p>🎯 Platform: ${data.train_info.platform}</p>
+                        <p>⏰ ETA: ${data.train_info.eta}</p>
+                        <p>🛤️ Distance Covered: ${data.train_info.distance_covered}</p>
+                        <p>🚄 Speed: ${data.train_info.speed}</p>
+                    </div>
+                `;
+                trainInfo.innerHTML = trainInfoHTML;
             }
 
-            // Update stations list if available
+            // Upcoming Stations Section
             if (data.upcoming_stations && data.upcoming_stations.length > 0) {
-                const stationsList = document.getElementById('stations-list');
-                stationsList.innerHTML = '';
+                const stationsHTML = data.upcoming_stations.map(station => `
+                    <div class="station-card">
+                        <h3>${station.name}</h3>
+                        <p>🕒 ETA: ${station.eta}</p>
+                        <p>📍 Platform: ${station.platform}</p>
+                        <p>📏 Distance: ${station.distance} km</p>
+                        <p>⏸️ Halt: ${station.halt} mins</p>
+                    </div>
+                `).join('');
                 
-                data.upcoming_stations.forEach(station => {
-                    const li = document.createElement('li');
-                    li.className = 'station-item';
-                    li.innerHTML = `
-                        <div class="station-name">${station.name} (${station.code})</div>
-                        <div class="station-details">
-                            <span>ETA: ${station.eta}</span>
-                            <span>Platform: ${station.platform}</span>
-                            <span>Distance: ${station.distance}km</span>
-                            <span>Halt: ${station.halt}min</span>
+                stationsList.innerHTML = `
+                    <div class="stations-box">
+                        <h2>Next Stations (${data.stations_remaining} remaining)</h2>
+                        <div class="stations-grid">
+                            ${stationsHTML}
                         </div>
-                    `;
-                    stationsList.appendChild(li);
-                });
-            }
-
-            // Handle service status
-            if (!data.is_active) {
-                document.getElementById('status').classList.add('inactive');
-            } else {
-                document.getElementById('status').classList.remove('inactive');
+                    </div>
+                `;
             }
         })
         .catch(error => {
-            console.error('Error fetching train status:', error);
-            document.getElementById('status').textContent = 'Error fetching train status';
+            console.error('Error:', error);
+            document.getElementById('status-container').innerHTML = `
+                <div class="error">
+                    Failed to fetch train status. Please try again later.
+                </div>
+            `;
         });
 }
 

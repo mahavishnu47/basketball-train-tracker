@@ -295,6 +295,133 @@ h1 {
     opacity: 0.8;
 }
 
+/* Main container */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Arial', sans-serif;
+}
+
+/* Special Message */
+.special-message {
+    background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+    color: white;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    margin: 20px 0;
+    animation: pulse 2s infinite;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.2);
+}
+
+.message-text {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+/* Status Box */
+.status-box {
+    background: #fff;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.status-box.active {
+    border-left: 5px solid #4CAF50;
+}
+
+.status-box.inactive {
+    border-left: 5px solid #f44336;
+}
+
+.status-box h2 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+/* Train Info Box */
+.train-info-box {
+    background: #fff;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.train-info-box h2 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.train-info-box p {
+    margin: 10px 0;
+    color: #555;
+}
+
+/* Stations Grid */
+.stations-box {
+    background: #fff;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.station-card {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    transition: transform 0.2s;
+}
+
+.station-card:hover {
+    transform: translateY(-5px);
+}
+
+.station-card h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.station-card p {
+    margin: 5px 0;
+    color: #666;
+}
+
+/* Error Message */
+.error {
+    background: #ffebee;
+    color: #c62828;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+/* Animations */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
 @media (max-width: 600px) {
     .court {
         padding: 1rem;
@@ -310,5 +437,21 @@ h1 {
     
     .stat-box p {
         font-size: 1.4rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .stations-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .container {
+        padding: 10px;
+    }
+    
+    .status-box,
+    .train-info-box,
+    .stations-box {
+        padding: 15px;
     }
 }
