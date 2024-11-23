@@ -30,11 +30,10 @@ def fetch_train_status():
         # Get the current date and time in India
         india_tz = pytz.timezone('Asia/Kolkata')
         current_date = datetime.now(india_tz)
-        train_start = datetime(2024, 11, 23, tzinfo=india_tz)
-        train_end = datetime(2024, 11, 28, 23, 59, 59, tzinfo=india_tz)
+        train_start = datetime(2024, 11, 24, tzinfo=india_tz)
 
         # Check if we're within the valid date range
-        if current_date < train_start:
+        if current_date <= train_start:
             days_until_start = (train_start - current_date).days
             hours_until_start = ((train_start - current_date).seconds // 3600)
             return {
@@ -47,24 +46,8 @@ def fetch_train_status():
                 "train_info": {
                     "train_name": "Mumbai CSMT - Amritsar Express",
                     "source": "MUMBAI CSMT",
-                    "destination": "AMRITSAR JN",
+                    "destination": "BHOPAL JN",
                     "message": "Waiting for the special journey to begin! ❤️"
-                }
-            }
-        
-        if current_date > train_end:
-            return {
-                "current_station": "Journey Completed",
-                "stations_remaining": 0,
-                "status": "Train journey has ended",
-                "last_update": current_date.strftime("%I:%M %p"),
-                "is_active": False,
-                "upcoming_stations": [],
-                "train_info": {
-                    "train_name": "Mumbai CSMT - Amritsar Express",
-                    "source": "MUMBAI CSMT",
-                    "destination": "AMRITSAR JN",
-                    "message": "The journey has concluded. Hope it was memorable! ❤️"
                 }
             }
 
@@ -111,32 +94,58 @@ def fetch_train_status():
                 "status": "Data Error"
             }
 
-        # Get upcoming stations
+        # Check if train has reached Bhopal
+        current_station = data.get("current_station_name", "").strip()
+        if current_station == "BHOPAL JN":
+            return {
+                "current_station": "BHOPAL JN",
+                "stations_remaining": 0,
+                "status": "Journey completed! Train has reached Bhopal Junction",
+                "last_update": current_date.strftime("%I:%M %p"),
+                "is_active": False,
+                "upcoming_stations": [],
+                "train_info": {
+                    "train_name": "Mumbai CSMT - Amritsar Express",
+                    "source": "MUMBAI CSMT",
+                    "destination": "BHOPAL JN",
+                    "message": "The journey has concluded at Bhopal. Hope it was memorable! ❤️"
+                }
+            }
+
+        # Get upcoming stations until Bhopal
         upcoming_stations = []
+        reached_bhopal = False
         for i in range(1, 36):
             station_key = str(i)
             if station_key in data.get("upcoming_stations", {}) and data["upcoming_stations"][station_key]:
                 station = data["upcoming_stations"][station_key]
+                station_name = station.get("station_name", "").strip()
+                
+                # Add station to list
                 upcoming_stations.append({
-                    "name": station.get("station_name", ""),
+                    "name": station_name,
                     "code": station.get("station_code", ""),
                     "eta": datetime.strptime(station.get("eta", "00:00"), "%H:%M").strftime("%I:%M %p") if station.get("eta") else "N/A",
                     "platform": station.get("platform_number", "TBD"),
                     "distance": station.get("distance_from_current_station", 0),
                     "halt": station.get("halt", 0)
                 })
+                
+                # Stop if we reach Bhopal
+                if station_name == "BHOPAL JN":
+                    reached_bhopal = True
+                    break
 
         # Calculate basic info
         current_station_index = int(data.get("stoppage_number", 0))
-        stations_remaining = max(0, 46 - current_station_index)
         delay_mins = data.get("delay", 0)
         delay_text = f"{delay_mins} minutes delayed" if delay_mins > 0 else "On time"
         platform = data.get("platform_number", 0)
         platform_text = f"Platform {platform}" if platform > 0 else "TBD"
 
         return {
-            "current_station": data.get("current_station_name", "N/A").replace("'", ""),
-            "stations_remaining": stations_remaining,
+            "current_station": current_station,
+            "stations_remaining": len(upcoming_stations),
             "status": data.get("status", "Status unavailable"),
             "last_update": current_date.strftime("%I:%M %p"),
             "is_active": True,
@@ -144,13 +153,13 @@ def fetch_train_status():
             "train_info": {
                 "train_name": data.get("train_name", "Mumbai CSMT - Amritsar Express"),
                 "source": data.get("source_stn_name", "MUMBAI CSMT"),
-                "destination": data.get("dest_stn_name", "AMRITSAR JN"),
+                "destination": "BHOPAL JN",
                 "delay": delay_text,
                 "eta": datetime.strptime(data.get("eta", "00:00"), "%H:%M").strftime("%I:%M %p") if data.get("eta") else "N/A",
                 "platform": platform_text,
                 "next_station": upcoming_stations[0]["name"] if upcoming_stations else "N/A",
                 "distance_covered": f"{data.get('distance_from_source', 0)} km",
-                "total_distance": f"{data.get('total_distance', 0)} km",
+                "total_distance": "Distance to Bhopal",
                 "speed": f"{data.get('avg_speed', 0)} km/h",
                 "journey_time": f"{data.get('journey_time', 0)} minutes",
                 "message": "Tracking your special journey with ❤️"
