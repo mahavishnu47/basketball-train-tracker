@@ -1,5 +1,5 @@
-// Polling interval in milliseconds (30 seconds)
-const POLLING_INTERVAL = 30000;
+// Polling interval in milliseconds (15 minutes)
+const POLLING_INTERVAL = 60000*15;
 
 // Function to format time
 function formatTime(time) {
