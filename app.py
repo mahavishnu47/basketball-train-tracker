@@ -8,164 +8,134 @@ import json
 app = Flask(__name__)
 
 def calculate_start_day():
-    # Define the train start date
-    train_start_date = datetime(2024, 11, 23, tzinfo=pytz.timezone('Asia/Kolkata'))
-    current_date = datetime.now(pytz.timezone('Asia/Kolkata'))
+    # Set the target date to November 23rd, 2024
+    target_date = datetime(2024, 11, 22).date()
+    current_date = datetime.now().date()
     
-    # If we're before the train start date, return None
-    if current_date < train_start_date:
-        return None
+    # If we're before the journey date, return 0 (start of journey)
+    if current_date < target_date:
+        return 0
         
-    # Calculate days since train start
-    days_since_start = (current_date.date() - train_start_date.date()).days
+    # Calculate days since start
+    days_since_start = (current_date - target_date).days
     
-    # The API expects 1-7 for the current week
-    # Convert the days since start to a number between 1-7
-    start_day = (days_since_start % 7) + 1
-    
-    return start_day
+    # The API expects 0-4 where:
+    # 0 = start of journey
+    # 1 = one day ago
+    # 2 = two days ago
+    # 3 = three days ago
+    # 4 = four days ago
+    return min(days_since_start, 4)
 
 def fetch_train_status():
     try:
-        # Get the current date and time in India
-        india_tz = pytz.timezone('Asia/Kolkata')
-        current_date = datetime.now(india_tz)
-        train_start = datetime(2024, 11, 24, tzinfo=india_tz)
-
-        # Check if we're within the valid date range
-        if current_date <= train_start:
-            days_until_start = (train_start - current_date).days
-            hours_until_start = ((train_start - current_date).seconds // 3600)
+        # Get current time in IST
+        ist = pytz.timezone('Asia/Kolkata')
+        current_time = datetime.now(ist)
+        current_date = current_time.date()
+        target_date = datetime(2024, 11, 23).date()
+        
+        # Calculate start day (0-4) for API
+        start_day = calculate_start_day()
+        
+        # Check if journey hasn't started
+        if current_date < target_date:
+            days_until = (target_date - current_date).days
             return {
-                "current_station": "Not Started",
-                "stations_remaining": "N/A",
-                "status": f"Train journey begins in {days_until_start} days and {hours_until_start} hours",
-                "last_update": current_date.strftime("%I:%M %p"),
                 "is_active": False,
-                "upcoming_stations": [],
+                "status": f"Journey starts in {days_until} days",
                 "train_info": {
-                    "train_name": "Mumbai CSMT - Amritsar Express",
+                    "train_name": "ASR Express (11057)",
                     "source": "MUMBAI CSMT",
                     "destination": "BHOPAL JN",
-                    "message": "Waiting for the special journey to begin! ❤️"
+                    "message": "Counting down the days until your special journey! 🏀❤️"
                 }
             }
 
-        start_day = calculate_start_day()
-        if start_day is None:
-            return {
-                "error": "Invalid date range",
-                "status": "Service not active yet"
-            }
-
+        # Prepare headers for RapidAPI
         url = "https://irctc1.p.rapidapi.com/api/v1/liveTrainStatus"
-        api_key = os.environ.get("RAPIDAPI_KEY")
-        api_host = os.environ.get("RAPIDAPI_HOST", "irctc1.p.rapidapi.com")
+        
+        # Get API credentials from environment variables
+        api_key = os.getenv('RAPIDAPI_KEY')
+        api_host = os.getenv('RAPIDAPI_HOST', 'irctc1.p.rapidapi.com')
         
         if not api_key:
-            return {
-                "error": "API configuration missing",
-                "status": "Configuration Error"
-            }
-
+            raise Exception("API key not found in environment variables")
+            
         headers = {
             "X-RapidAPI-Key": api_key,
             "X-RapidAPI-Host": api_host
         }
-        
-        params = {
+
+        # Query parameters for the train
+        querystring = {
             "trainNo": "11057",
-            "startDay": str(start_day)
+            "startDay": str(start_day)  # API expects 0-4
         }
 
-        response = requests.get(url, headers=headers, params=params, timeout=10)
-        response_data = response.json()
+        print(f"Making API request with headers: {headers}")
+        print(f"Query parameters: {querystring}")
+        
+        # Make API request with increased timeout
+        response = requests.get(url, headers=headers, params=querystring, timeout=30)
         
         if response.status_code != 200:
-            return {
-                "error": f"API Error: {response_data.get('message', 'Unknown error')}",
-                "status": "API Error"
-            }
+            print(f"API returned status code: {response.status_code}")
+            print(f"Response content: {response.text}")
+            raise Exception(f"API returned status code {response.status_code}")
 
-        data = response_data.get("data", {})
-        if not data or not data.get("success"):
-            return {
-                "error": "No train information available",
-                "status": "Data Error"
-            }
-
-        # Check if train has reached Bhopal
-        current_station = data.get("current_station_name", "").strip()
-        if current_station == "BHOPAL JN":
-            return {
-                "current_station": "BHOPAL JN",
-                "stations_remaining": 0,
-                "status": "Journey completed! Train has reached Bhopal Junction",
-                "last_update": current_date.strftime("%I:%M %p"),
-                "is_active": False,
-                "upcoming_stations": [],
-                "train_info": {
-                    "train_name": "Mumbai CSMT - Amritsar Express",
-                    "source": "MUMBAI CSMT",
-                    "destination": "BHOPAL JN",
-                    "message": "The journey has concluded at Bhopal. Hope it was memorable! ❤️"
-                }
-            }
-
-        # Get upcoming stations until Bhopal
+        data = response.json()
+        print(f"API Response: {data}")
+        
+        if not data or "data" not in data:
+            raise Exception("Invalid response format from API")
+            
+        train_data = data.get("data", {})
+        
+        # Process upcoming stations
         upcoming_stations = []
-        reached_bhopal = False
-        for i in range(1, 36):
-            station_key = str(i)
-            if station_key in data.get("upcoming_stations", {}) and data["upcoming_stations"][station_key]:
-                station = data["upcoming_stations"][station_key]
-                station_name = station.get("station_name", "").strip()
+        for station in train_data.get("upcoming_stations", []):
+            if station.get("station_name") == "BHOPAL JN":
+                break
                 
-                # Add station to list
-                upcoming_stations.append({
-                    "name": station_name,
-                    "code": station.get("station_code", ""),
-                    "eta": datetime.strptime(station.get("eta", "00:00"), "%H:%M").strftime("%I:%M %p") if station.get("eta") else "N/A",
-                    "platform": station.get("platform_number", "TBD"),
-                    "distance": station.get("distance_from_current_station", 0),
-                    "halt": station.get("halt", 0)
-                })
-                
-                # Stop if we reach Bhopal
-                if station_name == "BHOPAL JN":
-                    reached_bhopal = True
-                    break
-
-        # Calculate basic info
-        current_station_index = int(data.get("stoppage_number", 0))
-        delay_mins = data.get("delay", 0)
-        delay_text = f"{delay_mins} minutes delayed" if delay_mins > 0 else "On time"
-        platform = data.get("platform_number", 0)
-        platform_text = f"Platform {platform}" if platform > 0 else "TBD"
+            upcoming_stations.append({
+                "station_name": station.get("station_name", "Unknown"),
+                "station_code": station.get("station_code", ""),
+                "day": station.get("day", 1),
+                "distance_from_start": station.get("distance_from_source", 0),
+                "scheduled_arrival": station.get("sta", "00:00"),
+                "scheduled_departure": station.get("std", "00:00"),
+                "expected_arrival": station.get("eta", "00:00"),
+                "platform_number": station.get("platform_number", "TBD"),
+                "has_food": station.get("has_food", False),
+                "halt_time": f"{station.get('halt', 0)} mins"
+            })
 
         return {
-            "current_station": current_station,
-            "stations_remaining": len(upcoming_stations),
-            "status": data.get("status", "Status unavailable"),
-            "last_update": current_date.strftime("%I:%M %p"),
             "is_active": True,
+            "error": None,
+            "status": train_data.get("current_status", "Status unavailable"),
+            "current_station": train_data.get("current_station_name", "Unknown"),
+            "last_update": current_time.strftime("%I:%M %p"),
             "upcoming_stations": upcoming_stations,
             "train_info": {
-                "train_name": data.get("train_name", "Mumbai CSMT - Amritsar Express"),
-                "source": data.get("source_stn_name", "MUMBAI CSMT"),
+                "train_name": "ASR Express (11057)",
+                "source": "MUMBAI CSMT",
                 "destination": "BHOPAL JN",
-                "delay": delay_text,
-                "eta": datetime.strptime(data.get("eta", "00:00"), "%H:%M").strftime("%I:%M %p") if data.get("eta") else "N/A",
-                "platform": platform_text,
-                "next_station": upcoming_stations[0]["name"] if upcoming_stations else "N/A",
-                "distance_covered": f"{data.get('distance_from_source', 0)} km",
-                "total_distance": "Distance to Bhopal",
-                "speed": f"{data.get('avg_speed', 0)} km/h",
-                "journey_time": f"{data.get('journey_time', 0)} minutes",
-                "message": "Tracking your special journey with ❤️"
+                "delay": train_data.get("delay_text", "No information"),
+                "eta": train_data.get("eta", "Not available"),
+                "platform": f"Platform {train_data.get('platform_number', 'TBD')}",
+                "next_station": upcoming_stations[0]["station_name"] if upcoming_stations else "N/A",
+                "distance_covered": f"{train_data.get('distance_from_source', 0)} km",
+                "total_distance": "800 km to Bhopal",
+                "speed": f"{train_data.get('speed', 0)} km/h",
+                "journey_time": f"{train_data.get('journey_time', 0)} minutes",
+                "message": "Your journey is progressing smoothly! 🏀❤️"
             }
         }
+
     except Exception as e:
+        print(f"Error in fetch_train_status: {str(e)}")  # Log the error
         return {
             "error": f"System Error: {str(e)}",
             "status": "Error"
