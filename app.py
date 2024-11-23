@@ -4,12 +4,13 @@ from datetime import datetime, timezone
 import pytz
 import requests
 import json
+import random
 
 app = Flask(__name__)
 
 def calculate_start_day():
     # Set the target date to November 23rd, 2024
-    target_date = datetime(2024, 11, 22).date()
+    target_date = datetime(2024, 11, 23).date()
     current_date = datetime.now().date()
     
     # If we're before the journey date, return 0 (start of journey)
@@ -25,7 +26,7 @@ def calculate_start_day():
     # 2 = two days ago
     # 3 = three days ago
     # 4 = four days ago
-    return min(days_since_start, 4)
+    return min(days_since_start, 2)
 
 def fetch_train_status():
     try:
@@ -48,7 +49,7 @@ def fetch_train_status():
                     "train_name": "ASR Express (11057)",
                     "source": "MUMBAI CSMT",
                     "destination": "BHOPAL JN",
-                    "message": "Counting down the days until your special journey! 🏀❤️"
+                    "message": "Counting down the days until your special journey! "
                 }
             }
 
@@ -95,7 +96,7 @@ def fetch_train_status():
         # Process upcoming stations
         upcoming_stations = []
         for station in train_data.get("upcoming_stations", []):
-            if station.get("station_name") == "BHOPAL JN":
+            if station.get("station_name") == "VIDISHA":
                 break
                 
             upcoming_stations.append({
@@ -108,13 +109,11 @@ def fetch_train_status():
                 "expected_arrival": station.get("eta", "00:00"),
                 "platform_number": station.get("platform_number", "TBD"),
                 "has_food": station.get("has_food", False),
-                "halt_time": f"{station.get('halt', 0)} mins"
-            })
+                "halt_time": f"{station.get('halt', 0)} mins"            })
 
         return {
+            "status": "success",
             "is_active": True,
-            "error": None,
-            "status": train_data.get("current_status", "Status unavailable"),
             "current_station": train_data.get("current_station_name", "Unknown"),
             "last_update": current_time.strftime("%I:%M %p"),
             "upcoming_stations": upcoming_stations,
@@ -122,16 +121,16 @@ def fetch_train_status():
                 "train_name": "ASR Express (11057)",
                 "source": "MUMBAI CSMT",
                 "destination": "BHOPAL JN",
-                "delay": train_data.get("delay_text", "No information"),
+                "delay": train_data.get("delay", "No information"),
                 "eta": train_data.get("eta", "Not available"),
-                "platform": f"Platform {train_data.get('platform_number', 'TBD')}",
                 "next_station": upcoming_stations[0]["station_name"] if upcoming_stations else "N/A",
                 "distance_covered": f"{train_data.get('distance_from_source', 0)} km",
                 "total_distance": "800 km to Bhopal",
                 "speed": f"{train_data.get('speed', 0)} km/h",
                 "journey_time": f"{train_data.get('journey_time', 0)} minutes",
-                "message": "Your journey is progressing smoothly! 🏀❤️"
-            }
+            },
+            "status_as_of" : train_data.get("status_as_of", "Unknown")
+
         }
 
     except Exception as e:
@@ -148,12 +147,8 @@ def home():
 @app.route('/health')
 def health():
     return jsonify({
-        "status": "ok",
-        "timestamp": datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S"),
-        "env_check": {
-            "RAPIDAPI_KEY": "present" if os.environ.get("RAPIDAPI_KEY") else "missing",
-            "RAPIDAPI_HOST": "present" if os.environ.get("RAPIDAPI_HOST") else "missing"
-        }
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat()
     })
 
 @app.route('/get_update')
@@ -161,4 +156,4 @@ def get_update():
     return jsonify(fetch_train_status())
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
