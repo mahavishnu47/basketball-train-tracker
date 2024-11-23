@@ -1,168 +1,83 @@
-let lastStationsRemaining = null;
+// Polling interval in milliseconds (20 seconds)
+const POLLING_INTERVAL = 20000;
 
 function updateTrainStatus() {
-    fetch('/train-status')
+    fetch('/get_update')
         .then(response => response.json())
         .then(data => {
-            document.getElementById('currentStation').textContent = data.current_station || 'N/A';
-            document.getElementById('stationsRemaining').textContent = data.stations_remaining || '0';
-            document.getElementById('trainStatus').textContent = data.status || 'Status unavailable';
-            document.getElementById('lastUpdate').textContent = data.last_update || '';
+            // Update train status
+            document.getElementById('current-station').textContent = data.current_station || 'N/A';
+            document.getElementById('stations-remaining').textContent = data.stations_remaining || 0;
+            document.getElementById('last-update').textContent = data.last_update || 'N/A';
+            document.getElementById('status').textContent = data.status || 'Status unavailable';
 
             // Update train info
-            const trainInfo = data.train_info || {};
-            document.getElementById('trainName').textContent = trainInfo.train_name || 'N/A';
-            document.getElementById('source').textContent = trainInfo.source || 'N/A';
-            document.getElementById('destination').textContent = trainInfo.destination || 'N/A';
-            document.getElementById('delay').textContent = trainInfo.delay || 'On time';
-            document.getElementById('eta').textContent = trainInfo.eta || 'N/A';
-            document.getElementById('platform').textContent = trainInfo.platform || 'TBD';
-            document.getElementById('nextStation').textContent = trainInfo.next_station || 'N/A';
-            document.getElementById('distanceCovered').textContent = trainInfo.distance_covered || '0 km';
-            document.getElementById('totalDistance').textContent = trainInfo.total_distance || '0 km';
-            document.getElementById('speed').textContent = trainInfo.speed || '0 km/h';
+            if (data.train_info) {
+                document.getElementById('train-name').textContent = data.train_info.train_name || 'N/A';
+                document.getElementById('source').textContent = data.train_info.source || 'N/A';
+                document.getElementById('destination').textContent = data.train_info.destination || 'N/A';
+                document.getElementById('delay').textContent = data.train_info.delay || 'N/A';
+                document.getElementById('eta').textContent = data.train_info.eta || 'N/A';
+                document.getElementById('platform').textContent = data.train_info.platform || 'TBD';
+                document.getElementById('next-station').textContent = data.train_info.next_station || 'N/A';
+                document.getElementById('distance-covered').textContent = data.train_info.distance_covered || 'N/A';
+                document.getElementById('total-distance').textContent = data.train_info.total_distance || 'N/A';
+                document.getElementById('speed').textContent = data.train_info.speed || 'N/A';
+                document.getElementById('journey-time').textContent = data.train_info.journey_time || 'N/A';
+            }
 
-            // Store upcoming stations data
-            window.upcomingStations = data.upcoming_stations || [];
+            // Update stations list if available
+            if (data.upcoming_stations && data.upcoming_stations.length > 0) {
+                const stationsList = document.getElementById('stations-list');
+                stationsList.innerHTML = '';
+                
+                data.upcoming_stations.forEach(station => {
+                    const li = document.createElement('li');
+                    li.className = 'station-item';
+                    li.innerHTML = `
+                        <div class="station-name">${station.name} (${station.code})</div>
+                        <div class="station-details">
+                            <span>ETA: ${station.eta}</span>
+                            <span>Platform: ${station.platform}</span>
+                            <span>Distance: ${station.distance}km</span>
+                            <span>Halt: ${station.halt}min</span>
+                        </div>
+                    `;
+                    stationsList.appendChild(li);
+                });
+            }
 
-            // If service is inactive, update less frequently
+            // Handle service status
             if (!data.is_active) {
-                clearInterval(updateInterval);
-                setTimeout(updateTrainStatus, 10 * 60 * 1000); // Check every 10 minutes when inactive
-                return;
+                document.getElementById('status').classList.add('inactive');
+            } else {
+                document.getElementById('status').classList.remove('inactive');
             }
-
-            // Check if stations_remaining has changed and is a valid number
-            if (lastStationsRemaining !== null && 
-                lastStationsRemaining !== data.stations_remaining &&
-                !isNaN(data.stations_remaining)) {
-                showMotivationalMessage(data.stations_remaining);
-            }
-            lastStationsRemaining = data.stations_remaining;
         })
         .catch(error => {
-            console.error('Error:', error);
-            document.getElementById('trainStatus').textContent = 'Error connecting to server';
+            console.error('Error fetching train status:', error);
+            document.getElementById('status').textContent = 'Error fetching train status';
         });
 }
 
-function showMotivationalMessage(stationsLeft) {
-    const messages = [
-        "SLAM DUNK! ",
-        "YOU'RE ON FIRE! ",
-        "NOTHING BUT NET! ",
-        "KEEP PUSHING! ",
-        "YOU'RE A CHAMPION! ",
-        "FULL COURT PRESS! ",
-        "THREE-POINTER! 3",
-        "FAST BREAK! ",
-        "ALLEY-OOP! "
-    ];
-    
-    const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-    
-    const notification = document.createElement('div');
-    notification.className = 'motivation-popup';
-    notification.innerHTML = `
-        <h3>${randomMessage}</h3>
-        <p>${stationsLeft} stations to go, champ!</p>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Add styles dynamically
-    const styles = document.createElement('style');
-    styles.textContent = `
-        .motivation-popup {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--basketball-orange);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 10px;
-            text-align: center;
-            animation: slideDown 0.5s ease-out, fadeOut 0.5s ease-in 2.5s forwards;
-            z-index: 1000;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-        
-        @keyframes slideDown {
-            from { transform: translate(-50%, -100%); }
-            to { transform: translate(-50%, 0); }
-        }
-        
-        @keyframes fadeOut {
-            to { opacity: 0; }
-        }
-    `;
-    document.head.appendChild(styles);
-    
-    // Remove notification after animation
-    setTimeout(() => {
-        notification.remove();
-        styles.remove();
-    }, 3000);
-}
-
-function showStationsList() {
-    const stationsList = document.querySelector('.stations-list');
-    stationsList.innerHTML = ''; // Clear existing content
-
-    if (!window.upcomingStations || window.upcomingStations.length === 0) {
-        stationsList.innerHTML = '<p class="no-stations">No upcoming stations information available</p>';
-        modal.style.display = 'block';
-        return;
-    }
-
-    // Create table for stations
-    const table = document.createElement('table');
-    table.className = 'stations-table';
-    
-    // Add table header
-    const header = table.createTHead();
-    const headerRow = header.insertRow();
-    const headers = ['Station', 'ETA', 'Platform', 'Distance', 'Halt'];
-    headers.forEach(text => {
-        const th = document.createElement('th');
-        th.textContent = text;
-        headerRow.appendChild(th);
-    });
-
-    // Add stations data
-    const tbody = table.createTBody();
-    window.upcomingStations.forEach(station => {
-        const row = tbody.insertRow();
-        row.insertCell().textContent = station.name;
-        row.insertCell().textContent = station.eta;
-        row.insertCell().textContent = `Platform ${station.platform}`;
-        row.insertCell().textContent = `${station.distance} km`;
-        row.insertCell().textContent = `${station.halt} min`;
-    });
-
-    stationsList.appendChild(table);
-    modal.style.display = 'block';
-}
-
-// Global variables for modal handling
-const modal = document.getElementById('stationsModal');
-const closeBtn = document.querySelector('.close');
-
-// Close modal when clicking the close button
-closeBtn.onclick = function() {
-    modal.style.display = 'none';
-}
-
-// Close modal when clicking outside
-window.onclick = function(event) {
-    if (event.target === modal) {
-        modal.style.display = 'none';
-    }
-}
-
-// Update status every 20 seconds
-const updateInterval = setInterval(updateTrainStatus, 20000);
-
 // Initial update
 updateTrainStatus();
+
+// Set up polling
+setInterval(updateTrainStatus, POLLING_INTERVAL);
+
+// Modal functionality
+document.getElementById('show-stations').addEventListener('click', function() {
+    document.getElementById('stations-modal').style.display = 'block';
+});
+
+document.getElementsByClassName('close')[0].addEventListener('click', function() {
+    document.getElementById('stations-modal').style.display = 'none';
+});
+
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('stations-modal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+});
