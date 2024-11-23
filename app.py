@@ -1,14 +1,80 @@
 from flask import Flask, render_template, jsonify
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 import pytz
 import requests
 import json
 
 app = Flask(__name__)
 
+def calculate_start_day():
+    # Define the train start date
+    train_start_date = datetime(2024, 11, 23, tzinfo=pytz.timezone('Asia/Kolkata'))
+    current_date = datetime.now(pytz.timezone('Asia/Kolkata'))
+    
+    # If we're before the train start date, return None
+    if current_date < train_start_date:
+        return None
+        
+    # Calculate days since train start
+    days_since_start = (current_date.date() - train_start_date.date()).days
+    
+    # The API expects 1-7 for the current week
+    # Convert the days since start to a number between 1-7
+    start_day = (days_since_start % 7) + 1
+    
+    return start_day
+
 def fetch_train_status():
     try:
+        # Get the current date and time in India
+        india_tz = pytz.timezone('Asia/Kolkata')
+        current_date = datetime.now(india_tz)
+        train_start = datetime(2024, 11, 23, tzinfo=india_tz)
+        train_end = datetime(2024, 11, 28, 23, 59, 59, tzinfo=india_tz)
+
+        # Check if we're within the valid date range
+        if current_date < train_start:
+            days_until_start = (train_start - current_date).days
+            hours_until_start = ((train_start - current_date).seconds // 3600)
+            return {
+                "current_station": "Not Started",
+                "stations_remaining": "N/A",
+                "status": f"Train journey begins in {days_until_start} days and {hours_until_start} hours",
+                "last_update": current_date.strftime("%I:%M %p"),
+                "is_active": False,
+                "upcoming_stations": [],
+                "train_info": {
+                    "train_name": "Mumbai CSMT - Amritsar Express",
+                    "source": "MUMBAI CSMT",
+                    "destination": "AMRITSAR JN",
+                    "message": "Waiting for the special journey to begin! ❤️"
+                }
+            }
+        
+        if current_date > train_end:
+            return {
+                "current_station": "Journey Completed",
+                "stations_remaining": 0,
+                "status": "Train journey has ended",
+                "last_update": current_date.strftime("%I:%M %p"),
+                "is_active": False,
+                "upcoming_stations": [],
+                "train_info": {
+                    "train_name": "Mumbai CSMT - Amritsar Express",
+                    "source": "MUMBAI CSMT",
+                    "destination": "AMRITSAR JN",
+                    "message": "The journey has concluded. Hope it was memorable! ❤️"
+                }
+            }
+
+        start_day = calculate_start_day()
+        if start_day is None:
+            return {
+                "error": "Invalid date range",
+                "status": "Service not active yet"
+            }
+
         url = "https://irctc1.p.rapidapi.com/api/v1/liveTrainStatus"
         api_key = os.environ.get("RAPIDAPI_KEY")
         api_host = os.environ.get("RAPIDAPI_HOST", "irctc1.p.rapidapi.com")
@@ -26,7 +92,7 @@ def fetch_train_status():
         
         params = {
             "trainNo": "11057",
-            "startDay": "1"
+            "startDay": str(start_day)
         }
 
         response = requests.get(url, headers=headers, params=params, timeout=10)
@@ -72,7 +138,7 @@ def fetch_train_status():
             "current_station": data.get("current_station_name", "N/A").replace("'", ""),
             "stations_remaining": stations_remaining,
             "status": data.get("status", "Status unavailable"),
-            "last_update": datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%I:%M %p"),
+            "last_update": current_date.strftime("%I:%M %p"),
             "is_active": True,
             "upcoming_stations": upcoming_stations,
             "train_info": {
@@ -86,7 +152,8 @@ def fetch_train_status():
                 "distance_covered": f"{data.get('distance_from_source', 0)} km",
                 "total_distance": f"{data.get('total_distance', 0)} km",
                 "speed": f"{data.get('avg_speed', 0)} km/h",
-                "journey_time": f"{data.get('journey_time', 0)} minutes"
+                "journey_time": f"{data.get('journey_time', 0)} minutes",
+                "message": "Tracking your special journey with ❤️"
             }
         }
     except Exception as e:
