@@ -1,0 +1,314 @@
+:root {
+    --basketball-orange: #FF6B00;
+    --court-brown: #8B4513;
+    --text-color: #FFFFFF;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Oswald', sans-serif;
+    background: #1a1a1a;
+    color: var(--text-color);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.court {
+    background: linear-gradient(45deg, var(--court-brown), #6b3410);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+    min-width: 320px;
+    max-width: 800px;
+    width: 90%;
+}
+
+.scoreboard {
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 15px;
+    padding: 2rem;
+    text-align: center;
+    border: 3px solid var(--basketball-orange);
+    position: relative;
+    z-index: 1;
+}
+
+h1 {
+    color: var(--basketball-orange);
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.train-info {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: rgba(255, 107, 0, 0.1);
+    border-radius: 10px;
+}
+
+.train-name {
+    font-size: 1.2rem;
+    color: var(--basketball-orange);
+    margin-bottom: 0.5rem;
+}
+
+.route-info {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.display-board {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-box {
+    background: rgba(255, 107, 0, 0.1);
+    border-radius: 10px;
+    padding: 1rem;
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.stat-box:hover {
+    transform: scale(1.05);
+}
+
+.stat-box h2 {
+    color: var(--basketball-orange);
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-box p {
+    font-size: 1.8rem;
+    margin: 0.5rem 0;
+}
+
+.stat-box small {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-top: 0.5rem;
+}
+
+.highlight {
+    background: var(--basketball-orange);
+    animation: bounce 2s infinite;
+}
+
+.highlight h2, .highlight p, .highlight small {
+    color: white;
+}
+
+.last-update {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-top: 1rem;
+}
+
+.basketball-decoration {
+    position: absolute;
+    bottom: -50px;
+    right: -50px;
+    opacity: 0.2;
+    z-index: 0;
+}
+
+.ball {
+    width: 100px;
+    height: 100px;
+    background: var(--basketball-orange);
+    border-radius: 50%;
+    position: relative;
+}
+
+.ball::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: black;
+}
+
+.ball::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: black;
+}
+
+.clickable {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+}
+
+.clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 107, 0, 0.3);
+}
+
+.clickable:active {
+    transform: translateY(0);
+}
+
+.clickable::after {
+    content: '👆';
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    font-size: 14px;
+    animation: bounce 1s infinite;
+    opacity: 0.8;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    overflow-y: auto;
+}
+
+.modal-content {
+    background-color: #1a1a1a;
+    margin: 5% auto;
+    padding: 0;
+    border: 2px solid #ff6b00;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 800px;
+    color: white;
+    box-shadow: 0 0 20px rgba(255, 107, 0, 0.3);
+}
+
+.modal-header {
+    background-color: #ff6b00;
+    padding: 15px 20px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: white;
+    font-size: 1.5em;
+}
+
+.close {
+    color: white;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.close:hover {
+    color: #1a1a1a;
+}
+
+.stations-list {
+    padding: 20px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.stations-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    background-color: #2a2a2a;
+    border-radius: 5px;
+}
+
+.stations-table th,
+.stations-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #3a3a3a;
+}
+
+.stations-table th {
+    background-color: #3a3a3a;
+    color: #ff6b00;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.9em;
+}
+
+.stations-table tr:hover {
+    background-color: #3a3a3a;
+}
+
+.stations-table tr:last-child td {
+    border-bottom: none;
+}
+
+.no-stations {
+    text-align: center;
+    padding: 20px;
+    color: #888;
+}
+
+/* Make stations remaining clickable */
+#stationsRemaining {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#stationsRemaining::after {
+    content: '👆';
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    font-size: 14px;
+    animation: bounce 1s infinite;
+    opacity: 0.8;
+}
+
+@media (max-width: 600px) {
+    .court {
+        padding: 1rem;
+    }
+    
+    .scoreboard {
+        padding: 1rem;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    .stat-box p {
+        font-size: 1.4rem;
+    }
+}
